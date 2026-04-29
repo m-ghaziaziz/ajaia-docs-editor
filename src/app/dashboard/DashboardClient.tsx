@@ -375,8 +375,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               {search ? `No documents matching "${search}"` : activeTab === 'owned' ? 'Create your first document to get started.' : 'Ask a teammate to share a document with you.'}
             </p>
             {!search && activeTab === 'owned' && (
-              <button onClick={createDoc} style={{ background: 'linear-gradient(135deg, var(--color-brand-500), var(--color-brand-purple))', border: 'none', borderRadius: 10, padding: '10px 24px', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-                <Plus size={16} style={{ verticalAlign: 'middle', marginRight: 6 }} />
+              <button onClick={createDoc} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'linear-gradient(135deg, var(--color-brand-500), var(--color-brand-purple))', border: 'none', borderRadius: 10, padding: '10px 24px', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                <Plus size={16} />
                 New Document
               </button>
             )}
@@ -501,7 +501,6 @@ function DocCard({ doc, onOpen, onDelete, isDeleting, isOwner, menuOpen, onMenuT
         background: 'var(--bg-surface)',
         border: '1px solid var(--border-subtle)',
         borderRadius: 14,
-        overflow: 'hidden',
         cursor: 'pointer',
         transition: 'border-color 0.15s, transform 0.15s, box-shadow 0.15s',
         position: 'relative',
@@ -519,7 +518,7 @@ function DocCard({ doc, onOpen, onDelete, isDeleting, isOwner, menuOpen, onMenuT
       onClick={onOpen}
     >
       {/* Preview bar */}
-      <div style={{ height: 6, background: 'linear-gradient(135deg, var(--color-brand-500), var(--color-brand-purple))' }} />
+      <div style={{ height: 6, background: 'linear-gradient(135deg, var(--color-brand-500), var(--color-brand-purple))', borderTopLeftRadius: 13, borderTopRightRadius: 13 }} />
 
       <div style={{ padding: '16px 18px 18px' }}>
         {/* Title + Menu */}
