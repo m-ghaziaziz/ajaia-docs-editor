@@ -55,7 +55,7 @@ export default function TiptapEditor({ content, canEdit, onUpdate, insertedImage
     if (editor && content && !contentLoaded.current) {
       contentLoaded.current = true;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      editor.commands.setContent(content as any, false);
+      editor.commands.setContent(content as any);
     }
   }, [editor, content]);
 
