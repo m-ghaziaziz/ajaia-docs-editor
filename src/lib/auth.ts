@@ -86,6 +86,15 @@ export async function createMagicLink(email: string): Promise<{ token: string; u
 
 export async function verifyMagicLink(token: string): Promise<User | null> {
   // Check DB record
+  const now = new Date();
+  
+  // Debug log to see if the token exists at all
+  const rawRecord = await queryOne<{ id: string, expires_at: Date, used_at: Date | null }>(
+    'SELECT id, expires_at, used_at FROM magic_links WHERE token = ?',
+    [token]
+  );
+  console.log('[verifyMagicLink] Raw record check:', rawRecord, 'Current Node Time:', now);
+
   const record = await queryOne<{
     id: string;
     user_id: string;
@@ -93,14 +102,17 @@ export async function verifyMagicLink(token: string): Promise<User | null> {
     expires_at: Date;
     used_at: Date | null;
   }>(
-    'SELECT * FROM magic_links WHERE token = ? AND used_at IS NULL AND expires_at > NOW()',
-    [token]
+    'SELECT * FROM magic_links WHERE token = ? AND used_at IS NULL AND expires_at > ?',
+    [token, now]
   );
 
-  if (!record) return null;
+  if (!record) {
+    console.log('[verifyMagicLink] Token invalid. Was it used or expired?');
+    return null;
+  }
 
   // Mark as used
-  await execute('UPDATE magic_links SET used_at = NOW() WHERE id = ?', [record.id]);
+  await execute('UPDATE magic_links SET used_at = ? WHERE id = ?', [now, record.id]);
 
   // Get user
   const user = await queryOne<User>('SELECT * FROM users WHERE id = ?', [record.user_id]);
@@ -141,8 +153,8 @@ export async function getCurrentUser(): Promise<User | null> {
   // Validate session exists and is not expired
   const tokenHash = hashToken(token);
   const session = await queryOne<{ id: string; user_id: string; expires_at: Date }>(
-    'SELECT * FROM sessions WHERE token_hash = ? AND expires_at > NOW()',
-    [tokenHash]
+    'SELECT * FROM sessions WHERE token_hash = ? AND expires_at > ?',
+    [tokenHash, new Date()]
   );
   if (!session) return null;
 
