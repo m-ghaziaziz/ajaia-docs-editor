@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     // Verify user has access to edit this document
     const [ownedDoc, sharedDoc] = await Promise.all([
       queryOne('SELECT id FROM documents WHERE id = ? AND owner_id = ?', [documentId, user.id]),
-      queryOne('SELECT document_id FROM document_collaborators WHERE document_id = ? AND user_id = ? AND role = "editor"', [documentId, user.id])
+      queryOne('SELECT id FROM document_shares WHERE document_id = ? AND shared_with = ? AND permission = "edit"', [documentId, user.id])
     ]);
 
     if (!ownedDoc && !sharedDoc) {
