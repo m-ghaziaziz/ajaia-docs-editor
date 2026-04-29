@@ -17,9 +17,12 @@ interface ShareRecord {
   permission: 'view' | 'edit';
 }
 
-async function getDocumentAccess(docId: string, userId: string): Promise<{ doc: Document; canEdit: boolean } | null> {
-  const doc = await queryOne<Document>(
-    'SELECT * FROM documents WHERE id = ? AND is_deleted = 0',
+async function getDocumentAccess(docId: string, userId: string): Promise<{ doc: Document & { owner_name?: string | null; owner_email?: string }; canEdit: boolean } | null> {
+  const doc = await queryOne<Document & { owner_name?: string | null; owner_email?: string }>(
+    `SELECT d.*, u.name as owner_name, u.email as owner_email 
+     FROM documents d 
+     LEFT JOIN users u ON d.owner_id = u.id 
+     WHERE d.id = ? AND d.is_deleted = 0`,
     [docId]
   );
   if (!doc) return null;

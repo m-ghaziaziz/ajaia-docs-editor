@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Share2, Save, Check, Clock, Upload, Pencil, X } from 'lucide-react';
+import { ArrowLeft, Share2, Save, Check, Clock, Upload, Pencil, X, Image as ImageIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import ShareModal from './ShareModal';
 
@@ -16,6 +16,8 @@ interface DocData {
   isOwner: boolean;
   word_count: number;
   last_saved_at: string;
+  owner_name?: string | null;
+  owner_email?: string;
 }
 
 interface CurrentUser { id: string; email: string; name: string | null; }
@@ -30,6 +32,7 @@ export default function EditorClient({ documentId, currentUser }: { documentId: 
   const [titleValue, setTitleValue] = useState('');
   const [shareOpen, setShareOpen]   = useState(false);
   const [uploading, setUploading]   = useState(false);
+  const [insertedImage, setInsertedImage] = useState<string | null>(null);
   const saveTimer                   = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingContent              = useRef<{ json: object; text: string } | null>(null);
   const fileInputRef                = useRef<HTMLInputElement>(null);
@@ -70,11 +73,12 @@ export default function EditorClient({ documentId, currentUser }: { documentId: 
   }, [documentId]);
 
   const handleContentUpdate = useCallback((json: object, text: string) => {
+    if (!doc?.canEdit) return; // Prevent save if read-only
     pendingContent.current = { json, text };
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveStatus('saving');
     saveTimer.current = setTimeout(() => triggerSave({ json, text }), 2000);
-  }, [triggerSave]);
+  }, [triggerSave, doc?.canEdit]);
 
   // Save on unmount
   useEffect(() => {
@@ -97,8 +101,8 @@ export default function EditorClient({ documentId, currentUser }: { documentId: 
     });
   };
 
-  // Import file into this doc
-  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Attach Image
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
@@ -106,10 +110,13 @@ export default function EditorClient({ documentId, currentUser }: { documentId: 
     formData.append('file', file);
     formData.append('documentId', documentId);
     try {
-      const res = await fetch('/api/documents/upload', { method: 'POST', body: formData });
+      const res = await fetch('/api/documents/upload-image', { method: 'POST', body: formData });
       const data = await res.json();
-      if (res.ok && data.content) {
-        setDoc((prev) => prev ? { ...prev, content: data.content } : prev);
+      if (res.ok && data.url) {
+        setInsertedImage(data.url);
+      } else {
+        setError(data.error || 'Failed to upload image');
+        setTimeout(() => setError(''), 3000);
       }
     } finally {
       setUploading(false);
@@ -186,29 +193,43 @@ export default function EditorClient({ documentId, currentUser }: { documentId: 
           </button>
         )}
 
-        {/* Save status */}
-        {saveStatus !== 'idle' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: saveColors[saveStatus], fontSize: 12 }}>
-            {saveStatus === 'saving' ? (
-              <div className="animate-spin" style={{ width: 12, height: 12, border: '2px solid rgba(245,158,11,0.3)', borderTopColor: 'var(--color-warning)', borderRadius: '50%' }} />
-            ) : (
-              <SaveIcon size={13} />
-            )}
-            {saveLabels[saveStatus]}
-          </div>
-        )}
+        {/* Access and Save Status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {!doc.isOwner && (
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-elevated)', padding: '4px 10px', borderRadius: 20 }}>
+              Shared by {doc.owner_name || doc.owner_email?.split('@')[0] || 'owner'}
+            </span>
+          )}
+          
+          {!doc.canEdit && (
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-warning)', background: 'rgba(245,158,11,0.1)', padding: '4px 10px', borderRadius: 20 }}>
+              👁 View Only
+            </span>
+          )}
+
+          {doc.canEdit && saveStatus !== 'idle' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: saveColors[saveStatus], fontSize: 12 }}>
+              {saveStatus === 'saving' ? (
+                <div className="animate-spin" style={{ width: 12, height: 12, border: '2px solid rgba(245,158,11,0.3)', borderTopColor: 'var(--color-warning)', borderRadius: '50%' }} />
+              ) : (
+                <SaveIcon size={13} />
+              )}
+              {saveLabels[saveStatus]}
+            </div>
+          )}
+        </div>
 
         <div style={{ flex: 1 }} />
 
-        {/* Import */}
+        {/* Attachment */}
         {doc.canEdit && (
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.12s' }}
             onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--border-default)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--border-subtle)'; }}
           >
-            <Upload size={14} />
-            {uploading ? 'Importing…' : 'Import'}
-            <input ref={fileInputRef} type="file" accept=".txt,.md,.docx" onChange={handleFileImport} style={{ display: 'none' }} disabled={uploading} />
+            <ImageIcon size={14} />
+            {uploading ? 'Uploading…' : 'Attachment'}
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} disabled={uploading} />
           </label>
         )}
 
@@ -231,6 +252,8 @@ export default function EditorClient({ documentId, currentUser }: { documentId: 
           content={doc.content}
           canEdit={doc.canEdit}
           onUpdate={handleContentUpdate}
+          insertedImage={insertedImage}
+          onImageInserted={() => setInsertedImage(null)}
         />
       </div>
 

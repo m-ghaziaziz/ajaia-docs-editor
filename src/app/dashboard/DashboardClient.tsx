@@ -146,7 +146,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        background: 'rgba(10,10,15,0.85)',
+        background: 'rgba(255,255,255,0.85)',
         backdropFilter: 'blur(20px)',
         borderBottom: '1px solid var(--border-subtle)',
         padding: '0 24px',
