@@ -147,7 +147,7 @@ export default function EditorClient({ documentId, currentUser }: { documentId: 
         gap: 12,
         padding: '0 20px',
         height: 56,
-        background: 'rgba(10,10,15,0.9)',
+        background: 'rgba(255,255,255,0.9)',
         backdropFilter: 'blur(20px)',
         borderBottom: '1px solid var(--border-subtle)',
         flexShrink: 0,
@@ -226,7 +226,7 @@ export default function EditorClient({ documentId, currentUser }: { documentId: 
       </header>
 
       {/* Editor area */}
-      <div style={{ flex: 1, overflow: 'hidden', background: '#1a1a24' }}>
+      <div style={{ flex: 1, overflow: 'hidden', background: 'var(--bg-app)' }}>
         <TiptapEditor
           content={doc.content}
           canEdit={doc.canEdit}

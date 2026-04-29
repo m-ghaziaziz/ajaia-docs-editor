@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import {
   Plus, FileText, Share2, Trash2, LogOut, Upload,
   Search, ChevronDown, Clock, Users, Crown, Eye,
-  Edit3, MoreVertical, X, AlertCircle,
+  Edit3, MoreVertical, X, AlertCircle, UploadCloud
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { Modal } from '@/components/ui/Modal';
 
 interface User {
   id: string;
@@ -42,6 +43,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [uploadError, setUploadError] = useState('');
   const [deletingId, setDeletingId]   = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId]   = useState<string | null>(null);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [dragActive, setDragActive]   = useState(false);
   const fileInputRef                  = useRef<HTMLInputElement>(null);
 
   const fetchDocs = useCallback(async () => {
@@ -74,8 +77,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     setMenuOpenId(null);
   }
 
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  async function handleFileUpload(file: File) {
     if (!file) return;
 
     const ext = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -102,9 +104,29 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       setUploadError('Upload failed. Please try again.');
     } finally {
       setUploading(false);
+      setUploadModalOpen(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   }
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileUpload(e.dataTransfer.files[0]);
+    }
+  };
 
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -196,37 +218,34 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
           <div style={{ display: 'flex', gap: 10 }}>
             {/* Upload button */}
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 10,
-              padding: '10px 18px',
-              fontSize: 14,
-              fontWeight: 600,
-              color: 'var(--text-secondary)',
-              cursor: uploading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border-default)';
-              e.currentTarget.style.color = 'var(--text-primary)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border-subtle)';
-              e.currentTarget.style.color = 'var(--text-secondary)';
-            }}
+            <button
+              onClick={() => setUploadModalOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 10,
+                padding: '10px 18px',
+                fontSize: 14,
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-default)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
             >
-              {uploading ? (
-                <div className="animate-spin" style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%' }} />
-              ) : (
-                <Upload size={16} />
-              )}
-              {uploading ? 'Uploading…' : 'Import File'}
-              <input ref={fileInputRef} type="file" accept=".txt,.md,.docx" onChange={handleFileUpload} style={{ display: 'none' }} disabled={uploading} />
-            </label>
+              <Upload size={16} />
+              Import File
+            </button>
 
             {/* New doc button */}
             <button
@@ -380,6 +399,77 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
         )}
       </main>
+
+      <Modal isOpen={uploadModalOpen} onClose={() => !uploading && setUploadModalOpen(false)} title="Upload Document">
+        <div
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+          style={{
+            border: `2px dashed ${dragActive ? 'var(--color-brand-500)' : 'var(--border-strong)'}`,
+            borderRadius: 12,
+            padding: '40px 20px',
+            textAlign: 'center',
+            background: dragActive ? 'rgba(108,71,255,0.05)' : 'var(--bg-overlay)',
+            transition: 'all 0.2s ease',
+            position: 'relative'
+          }}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,.md,.docx"
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                handleFileUpload(e.target.files[0]);
+              }
+            }}
+            style={{ display: 'none' }}
+            disabled={uploading}
+          />
+          
+          <div style={{
+            width: 60, height: 60, borderRadius: '50%',
+            background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'
+          }}>
+            {uploading ? (
+              <div className="animate-spin" style={{ width: 24, height: 24, border: '3px solid rgba(108,71,255,0.2)', borderTopColor: 'var(--color-brand-500)', borderRadius: '50%' }} />
+            ) : (
+              <UploadCloud size={28} color="var(--color-brand-400)" />
+            )}
+          </div>
+          
+          <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
+            {uploading ? 'Uploading your document...' : 'Drag and drop your file here'}
+          </h3>
+          <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: 14 }}>
+            Supported formats: <strong>.txt, .md, .docx</strong> (Max 10MB)
+          </p>
+          
+          {!uploading && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 8,
+                padding: '8px 20px',
+                color: 'var(--text-primary)',
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: 'pointer',
+                transition: 'all 0.15s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--color-brand-400)'; e.currentTarget.style.color = 'var(--color-brand-500)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+            >
+              Browse files
+            </button>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }
