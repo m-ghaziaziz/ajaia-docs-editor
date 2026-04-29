@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ajaia Docs
+
+A modern, professional full-stack document editing SaaS built with Next.js (App Router), Tiptap, and MySQL. It features passwordless magic-link authentication, real-time autosave, rich text formatting, file importing, and document sharing capabilities.
+
+## Features
+
+- **Rich Text Editing**: Powered by Tiptap (Headless ProseMirror). Supports bold, italic, headings, lists, blockquotes, alignment, and character/word counts.
+- **Magic Link Authentication**: Secure, passwordless login flow using JSON Web Tokens (JWT) and HTTP-only cookies.
+- **Real-time Autosave**: Documents save automatically as you type, with a debounced indicator (Saving... -> Saved).
+- **Document Sharing**: Share your documents with other registered users. Assign either "view" or "edit" permissions.
+- **File Import**: Import `.txt`, `.md`, and `.docx` files directly into your workspace. The content is parsed and converted into editable Tiptap documents.
+- **Modern Premium UI**: Built with Tailwind CSS, featuring glassmorphism, smooth micro-animations, skeletons, and a tailored dark-theme palette (`var(--color-brand-500)`).
+
+## Tech Stack
+
+- **Framework**: Next.js 14+ (App Router)
+- **Editor Core**: Tiptap
+- **Database**: MySQL 8 (Designed for Hostinger VPS or any remote MySQL provider)
+- **Auth**: `jose` (JWT) + `nodemailer` (Magic Links)
+- **Styling**: Tailwind CSS + Lucide Icons + Radix UI primitives
+- **File Parsing**: `mammoth` (for `.docx`)
 
 ## Getting Started
 
-First, run the development server:
+### 1. Database Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+You will need a MySQL database. You can host this on Hostinger VPS as intended, or locally using XAMPP/Docker.
+
+1. Execute the SQL schema to create your tables. The schema is located in `schema.sql` at the root of the project.
+   ```bash
+   mysql -u root -p < schema.sql
+   ```
+
+### 2. Environment Variables
+
+Create a `.env.local` file in the root directory and update it with your actual credentials. Use the provided `.env.local` template:
+
+```env
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+APP_URL=http://localhost:3000
+
+# Generate a secure 32+ char random string
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production-min-32-chars
+
+# MySQL Connection (Hostinger VPS or Local)
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=ajaia_docs
+
+# SMTP Configuration (For Magic Links)
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=noreply@yourdomain.com
+SMTP_PASS=your-email-password
+EMAIL_FROM=Ajaia Docs <noreply@yourdomain.com>
+
+# Uploads
+UPLOAD_DIR=./public/uploads
+MAX_FILE_SIZE_MB=10
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Installation & Running
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Install dependencies and start the development server:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install
+npm run dev
+```
 
-## Learn More
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-To learn more about Next.js, take a look at the following resources:
+## File Upload Details
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Uploads are saved to the `/public/uploads` directory.
+- The file type is verified before parsing.
+- `.txt` files are split into paragraphs.
+- `.md` files are converted into basic Tiptap JSON nodes (headings, lists, paragraphs).
+- `.docx` files are parsed using `mammoth` into HTML, stripped, and converted to Tiptap JSON.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## License
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
