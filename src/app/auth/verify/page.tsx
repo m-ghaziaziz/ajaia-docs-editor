@@ -5,6 +5,12 @@ export const metadata: Metadata = {
   title: 'Verifying — Ajaia Docs',
 };
 
+import { Suspense } from 'react';
+
 export default function Page() {
-  return <VerifyPage />;
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <VerifyPage />
+    </Suspense>
+  );
 }
